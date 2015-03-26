@@ -5,6 +5,11 @@ clear all;
 
 %% 
 
+% Sampling-time
+fs = 50;
+ts = 1/50;
+
+% Pixel
 pix_i = 219;
 pix_j = 435;
 
@@ -14,12 +19,19 @@ k = 512;
 % figure-Variable
 nr_fig = 1;
 
+% Tiepass-Parameter
+N = 1; % N-te Ordnung
+fg = 0.02; %Grenzfrequenz
+
+
 %% Daten holen
 
 %load seq
 Data = load('/home/bill/Uni/Studienarbeit/GET/Simulation/video/compKSM01.mat');
 % Temperaturwerte jedes Pixels
 U_tp = Data.seq;
+%wird nicht länger gebraucht
+clear Data;
 
 %% Daten anpassen
 
@@ -61,7 +73,6 @@ U = U(:,:,1:k);
 X0 = U(:,:,1);
 
 %Grenzfrequenz des Tiefpass 1.Ordnung, TODO: höhere Ordnung
-fg = 0.005; % [fg] = Hz
 a_00 = 1-2*pi*fg;
 b_00 = 1-a_00;
 A = [ 0 0 0; 0 a_00 0; 0 0 0];
@@ -73,7 +84,6 @@ template = {A,B,z};
 %% CNN-Settings
 %h = ts;
 h = 1;
-N = 10;
 bc = 'dirichlet';
 func = 'limit';
 K = 1;
@@ -89,8 +99,7 @@ method = 'euler';
 %% Filterung ueber alle Bilder der Sequenz
 for i=1:k    
     % nächstes Bild in der Sequenz
-    P = U(:,:,i);
-    data = {X0,P};    
+    data = {X0,U(:,:,i)};    
     % Systemantwort berechnen
     X(:,:,i) = cnn_operation(data, template, settings, method);
     % neuer Anfangswert des Integrators
@@ -138,7 +147,7 @@ figure(nr_fig);
 nr_fig = nr_fig + 1;
 SpecRMSE.amp = 2*abs(Y(1:NFFT/2+1));
 SpecRMSE.f = f;
-plot(SpecRMSE.f,SpecRMSE.f); 
+plot(SpecRMSE.f,SpecRMSE.amp); 
 grid on;
 
 
