@@ -5,24 +5,23 @@ clear all;
 
 %% 
 
-% Sampling-time
+% Sampling
 fs = 50;
-ts = 1/50;
+ts = 1/fs;
 
 % Pixel
 pix_i = 219;
 pix_j = 435;
 
 % Anzahl der Bilder, die ausgewertet werden
-k = 512;
+k = 1024;
 
 % figure-Variable
 nr_fig = 1;
 
 % Tiepass-Parameter
-N = 1; % N-te Ordnung
-fg = 0.02; %Grenzfrequenz
-
+fg = 0.02; % Grenzfrequenz
+Order = 1; % Anzahl der in Reihe geschalteten Zellen
 
 %% Daten holen
 
@@ -48,32 +47,26 @@ offset = u_max+tp_min*(u_max-u_min)/(tp_max-tp_min);
 slope = -(u_max-u_min)/(tp_max-tp_min); 
 % auf CNN angepasster Wertebereich
 U = slope*U_tp+offset;
+clear U_tp;
 
 %reshape
 U = reshape(U,480,640,2048);
 
-%% FFT
-% fs = 50; 
-% ts = 1/fs; 
-% length = 2048;
-% t = (0:length-1)*ts;
-% NFFT = 2^nextpow2(length);
-% Y = fft(U(pix_i,pix_j,:),NFFT)/length;
-% Y = squeeze(Y);
-% f =fs/2*linspace(0,1,NFFT/2+1);
-% figure(nr_fig);
-% nr_fig = nr_fig + 1;
-% semilogx(f,2*abs(Y(1:NFFT/2+1))); grid on;
-
 %% CNN-Input und Template
 
-%prinzipiell wären noch die virtuellen Zellen zu ergänzen
+%TODO: prinzipiell wären noch die virtuellen Zellen zu ergänzen
+
+%Einlesen der von k-Bilder der Sequenz, da Programm bei 2048 abstürtzt
 U = U(:,:,1:k);
 %Anfangswerte
 X0 = U(:,:,1);
 
-%Grenzfrequenz des Tiefpass 1.Ordnung, TODO: höhere Ordnung
-a_00 = 1-2*pi*fg;
+% %debug
+% U = zeros(480,640,k)+0.1;
+% X0 = zeros(480,640);
+
+%Berechnung der Koeffizienten, so dass bei fg -3dB Dämpfung 
+a_00 = 1-2*pi*fg/sqrt(2^(1/Order)-1);
 b_00 = 1-a_00;
 A = [ 0 0 0; 0 a_00 0; 0 0 0];
 B = [ 0 0 0; 0 b_00 0; 0 0 0];
@@ -82,8 +75,9 @@ z = 0;
 template = {A,B,z};
 
 %% CNN-Settings
-%h = ts;
-h = 1;
+h = ts;
+%h = 1;
+N = 6; 
 bc = 'dirichlet';
 func = 'limit';
 K = 1;
@@ -106,59 +100,83 @@ for i=1:k
     X0 = X(:,:,i);
 end
 
-%% Auswertung eines Pixels, TODO: Spektren sind wahrscheinlich aussagekräftiger
+%% RMSE, Maß für alle Pixel
+% 
+% meas_U = evaluateSeries(U);
+% meas_X = evaluateSeries(X);
+% 
+% figure(nr_fig);
+% nr_fig = nr_fig + 1;
+% title('RMSE');
+% plot(1:k, meas_U.RMSEplot,'b',1:k, meas_X.RMSEplot,'r');
+% legend('U','X');
+% xlabel('k-tes Bild');
+% ylabel('Abweichung zu erstem Bild');
+% grid on;
+
+%% Auswertung eines Pixels
 U_ij = squeeze(U(pix_i,pix_j,:));
 X_ij = squeeze(X(pix_i,pix_j,:));
 
-%ylabel('u_{ij}[k], y_{ij}[k]');
-figure(nr_fig);
-nr_fig = nr_fig+1;
-plot(1:k,U_ij,'b',1:k,X_ij,'r'); 
-title(['Zellkoordinaten: i = ' int2str(pix_i) ', j = ' int2str(pix_j)]);
-legend('u_{ij}[k]', 'y_{ij}[k]');
-xlabel('k');
-grid on;
+% %ylabel('u_{ij}[k], y_{ij}[k]');
+% figure(nr_fig);
+% nr_fig = nr_fig+1;
+% plot(1:k,U_ij,'b',1:k,X_ij,'r'); 
+% title(['Zellkoordinaten: i = ' int2str(pix_i) ', j = ' int2str(pix_j)]);
+% legend('u_{ij}[k]', 'y_{ij}[k]');
+% xlabel('k');
+% grid on;
 
-%% RMSE, Maß für alle Pixel
+%% DFT der Zeitreihe des Pixels
 
-meas_U = evaluateSeries(U);
-meas_X = evaluateSeries(X);
-
-figure(nr_fig);
-nr_fig = nr_fig + 1;
-title('RMSE');
-plot(1:k, meas_U.RMSEplot,'b',1:k, meas_X.RMSEplot,'r');
-legend('U','X');
-xlabel('k-tes Bild');
-ylabel('Abweichung zu erstem Bild');
-grid on;
-
-%% FFT vom RMSE
-
-fs = 50; 
-ts = 1/fs; 
 length = k;
 t = (0:length-1)*ts;
 NFFT = 2^nextpow2(length);
-Y = fft(meas_U.RMSEplot,NFFT)/length;
-Y = squeeze(Y);
+Uf_ij = squeeze(fft(U_ij,NFFT)/length);
+Xf_ij = squeeze(fft(X_ij,NFFT)/length);
+Gf_ij = Xf_ij./Uf_ij;
 f =fs/2*linspace(0,1,NFFT/2+1);
 figure(nr_fig);
 nr_fig = nr_fig + 1;
-SpecRMSE.amp = 2*abs(Y(1:NFFT/2+1));
-SpecRMSE.f = f;
-plot(SpecRMSE.f,SpecRMSE.amp); 
+Xfabs = 2*abs(Xf_ij(1:NFFT/2+1));
+Ufabs = 2*abs(Uf_ij(1:NFFT/2+1));
+
+%semilogy(f,Xfabs./Ufabs); 
+loglog(f,Xfabs./Ufabs)
+xlabel('f/Hz');
+%xlim([0 5]);
+ylabel('|X_{ij}(f)/U_{ij}(f)|');
 grid on;
 
+%% Summe der Amplitudenbetragsquadrate des Pixels in den Bändern: 
+% % [0.01-0.1]Hz, 0.125-0.5Hz, 0.8-1.4Hz, 1.8-2.5Hz
+% figure(nr_fig);
+% % welche an welchen Frequenzen wird Amplitudenspektrum berechnet? 
+% f = meas_X.settings.powerArray(:,1); 
+% % remove singleton dimension
+% Xf = squeeze(meas_X.IFS(pix_i,pix_j,:));
+% Uf = squeeze(meas_U.IFS(pix_i,pix_j,:));
+% 
+% Gf = Xf./Uf;
+% 
+% plot(f,Gf);
+% xlabel('f/Hz');
+% ylabel('|X_{ij}(f)/U_{ij}(f)|');
+% grid on;
 
+%% FFT vom RMSE
 
-%% Simulinkmodell 
-% zur Verifikation der Ergebnisse des CNN-Simulators
-
-% IN = double([ [1:k]' U_ij ]);
-% %Anfangsbedingung
-% x_ij0 = U_ij(1); 
-% sim('Dynamik_Zelle_ij');
-
-
-
+% fs = 50; 
+% ts = 1/fs; 
+% length = k;
+% t = (0:length-1)*ts;
+% NFFT = 2^nextpow2(length);
+% Y = fft(meas_U.RMSEplot,NFFT)/length;
+% Y = squeeze(Y);
+% f =fs/2*linspace(0,1,NFFT/2+1);
+% figure(nr_fig);
+% nr_fig = nr_fig + 1;
+% SpecRMSE.amp = 2*abs(Y(1:NFFT/2+1));
+% SpecRMSE.f = f;
+% plot(SpecRMSE.f,SpecRMSE.amp); 
+% grid on;
