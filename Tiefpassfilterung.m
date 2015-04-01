@@ -101,31 +101,31 @@ for i=1:k
 end
 
 %% RMSE, Maß für alle Pixel
-% 
-% meas_U = evaluateSeries(U);
-% meas_X = evaluateSeries(X);
-% 
-% figure(nr_fig);
-% nr_fig = nr_fig + 1;
-% title('RMSE');
-% plot(1:k, meas_U.RMSEplot,'b',1:k, meas_X.RMSEplot,'r');
-% legend('U','X');
-% xlabel('k-tes Bild');
-% ylabel('Abweichung zu erstem Bild');
-% grid on;
+
+meas_U = evaluateSeries(U);
+meas_X = evaluateSeries(X);
+
+figure(nr_fig);
+nr_fig = nr_fig + 1;
+title('RMSE');
+plot(1:k, meas_U.RMSEplot,'b',1:k, meas_X.RMSEplot,'r');
+legend('U','X');
+xlabel('k-tes Bild');
+ylabel('Abweichung zu erstem Bild');
+grid on;
 
 %% Auswertung eines Pixels
 U_ij = squeeze(U(pix_i,pix_j,:));
 X_ij = squeeze(X(pix_i,pix_j,:));
 
-% %ylabel('u_{ij}[k], y_{ij}[k]');
-% figure(nr_fig);
-% nr_fig = nr_fig+1;
-% plot(1:k,U_ij,'b',1:k,X_ij,'r'); 
-% title(['Zellkoordinaten: i = ' int2str(pix_i) ', j = ' int2str(pix_j)]);
-% legend('u_{ij}[k]', 'y_{ij}[k]');
-% xlabel('k');
-% grid on;
+%ylabel('u_{ij}[k], y_{ij}[k]');
+figure(nr_fig);
+nr_fig = nr_fig+1;
+plot(1:k,U_ij,'b',1:k,X_ij,'r'); 
+title(['Zellkoordinaten: i = ' int2str(pix_i) ', j = ' int2str(pix_j)]);
+legend('u_{ij}[k]', 'y_{ij}[k]');
+xlabel('k');
+grid on;
 
 %% DFT der Zeitreihe des Pixels
 
