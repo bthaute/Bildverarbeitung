@@ -48,7 +48,6 @@ slope = -(u_max-u_min)/(tp_max-tp_min);
 % auf CNN angepasster Wertebereich
 U = slope*U_tp+offset;
 clear U_tp;
-q
 %reshape
 U = reshape(U,480,640,2048);
 
