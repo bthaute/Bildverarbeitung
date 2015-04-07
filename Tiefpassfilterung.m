@@ -14,7 +14,7 @@ pix_i = 219;
 pix_j = 435;
 
 % Anzahl der Bilder, die ausgewertet werden
-k = 512;
+k = 256;
 
 % figure-Variable
 nr_fig = 1;
@@ -77,7 +77,7 @@ template = {A,B,z};
 
 %% CNN-Settings
 h = 1;
-N = 6; 
+N = 1; 
 bc = 'dirichlet';
 func = 'limit';
 K = 1;
