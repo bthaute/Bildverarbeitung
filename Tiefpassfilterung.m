@@ -14,7 +14,7 @@ pix_i = 219;
 pix_j = 435;
 
 % Anzahl der Bilder, die ausgewertet werden
-k = 1024;
+k = 512;
 
 % figure-Variable
 nr_fig = 1;
@@ -48,7 +48,7 @@ slope = -(u_max-u_min)/(tp_max-tp_min);
 % auf CNN angepasster Wertebereich
 U = slope*U_tp+offset;
 clear U_tp;
-
+q
 %reshape
 U = reshape(U,480,640,2048);
 
@@ -65,7 +65,9 @@ X0 = U(:,:,1);
 % U = zeros(480,640,k)+0.1;
 % X0 = zeros(480,640);
 
-%Berechnung der Koeffizienten, so dass bei fg -3dB Dämpfung 
+%Berechnung der Koeffizienten, so dass bei fg -3dB Dämpfung, 
+%im Fall von Order-In-Reihe geschalteten Zellen. Fall ist hier 
+%allerdings nicht implementiert
 a_00 = 1-2*pi*fg/sqrt(2^(1/Order)-1);
 b_00 = 1-a_00;
 A = [ 0 0 0; 0 a_00 0; 0 0 0];
@@ -75,8 +77,7 @@ z = 0;
 template = {A,B,z};
 
 %% CNN-Settings
-h = ts;
-%h = 1;
+h = 1;
 N = 6; 
 bc = 'dirichlet';
 func = 'limit';
